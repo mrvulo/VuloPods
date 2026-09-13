@@ -6,6 +6,7 @@ public static class ProximityPairingParser
 {
     public const ushort AppleCompanyId = 0x004C;
     private const byte ProximityPairingType = 0x07;
+    private const byte PairedPrefix = 0x01;
     private const int MinLength = 11;
 
     /// <param name="data">Herstellerdaten ohne die zwei Bytes Company-ID; data[0] muss 0x07 sein.</param>
@@ -13,6 +14,9 @@ public static class ProximityPairingParser
     {
         if (data.Length < MinLength || data[0] != ProximityPairingType)
             return null;
+
+        if (data[2] != PairedPrefix)
+            return null; // 0x00 = Kopplungsmodus / Kurzform mit anderer Struktur
 
         var modelId = (ushort)((data[3] << 8) | data[4]);
         var status = data[5];

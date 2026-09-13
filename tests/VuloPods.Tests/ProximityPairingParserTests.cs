@@ -119,4 +119,20 @@ public class ProximityPairingParserTests
         Assert.Null(ProximityPairingParser.Parse(Packet(0x1420, 0x2A, 0x78, 0x05, 0x00).AsSpan(0, 8)));
         Assert.Null(ProximityPairingParser.Parse(ReadOnlySpan<byte>.Empty));
     }
+
+    [Fact]
+    public void PairingModeShortPacket_ReturnsNull()
+    {
+        // Echte Aufzeichnung: Länge 0x0F, Byte 2 = 0x00 → andere Struktur, wird verworfen
+        var bytes = Convert.FromHexString("070F001320CC68E0382F72F1E4E4157100");
+        Assert.Null(ProximityPairingParser.Parse(bytes));
+    }
+
+    [Fact]
+    public void Prefix00_LongPacket_ReturnsNull()
+    {
+        var p = Packet(0x1420, 0x2A, 0x78, 0x05, 0x00);
+        p[2] = 0x00;
+        Assert.Null(ProximityPairingParser.Parse(p));
+    }
 }

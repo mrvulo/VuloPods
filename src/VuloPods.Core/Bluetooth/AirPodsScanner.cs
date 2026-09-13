@@ -113,6 +113,9 @@ public sealed class AirPodsScanner : IDisposable
                     reader.ReadBytes(bytes);
                 }
 
+                if (LogRawPackets && bytes.Length > 0 && bytes[0] == 0x07)
+                    Log.Debug($"RAW {args.RawSignalStrengthInDBm} dBm {Convert.ToHexString(bytes)}");
+
                 var adv = ProximityPairingParser.Parse(bytes);
                 if (adv is null) continue;
 
