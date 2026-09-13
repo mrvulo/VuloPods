@@ -141,6 +141,19 @@ public class AirPodsStateStoreTests
     }
 
     [Fact]
+    public void OtherModel_TakesOver_EvenWhenCurrentDevicePacketsInterleave()
+    {
+        using var store = new AirPodsStateStore(_time);
+        store.Push(Rx(Adv(model: 0x1420), rssi: -60));
+        for (var i = 0; i < 5; i++)
+        {
+            store.Push(Rx(Adv(model: 0x0E20), rssi: -45));
+            store.Push(Rx(Adv(model: 0x1420), rssi: -60));
+        }
+        Assert.Equal(0x0E20, store.Current!.Advertisement.ModelId);
+    }
+
+    [Fact]
     public void DeviceLost_After30SecondsWithoutPackets()
     {
         using var store = new AirPodsStateStore(_time);

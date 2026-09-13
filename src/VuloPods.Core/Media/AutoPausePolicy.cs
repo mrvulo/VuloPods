@@ -11,6 +11,7 @@ public sealed class AutoPausePolicy : IDisposable
     private readonly object _gate = new();
     private readonly IMediaController _media;
     private readonly ITimer _timer;
+    private readonly SemaphoreSlim _fireLock = new(1, 1);
     private int? _wornCount;
     private PendingAction _pending;
     private bool _wePaused;
@@ -41,34 +42,58 @@ public sealed class AutoPausePolicy : IDisposable
 
     private async void Fire()
     {
-        PendingAction action;
-        lock (_gate)
-        {
-            action = _pending;
-            _pending = PendingAction.None;
-        }
-
+        await _fireLock.WaitAsync();
         try
         {
-            switch (action)
+            while (true)
             {
-                case PendingAction.Pause:
-                    if (await _media.PauseIfPlayingAsync()) _wePaused = true;
-                    break;
-                case PendingAction.Resume:
-                    if (_wePaused)
-                    {
-                        _wePaused = false;
-                        await _media.ResumeAsync();
-                    }
-                    break;
+                PendingAction action;
+                lock (_gate)
+                {
+                    action = _pending;
+                    _pending = PendingAction.None;
+                }
+
+                if (action == PendingAction.None) break;
+
+                switch (action)
+                {
+                    case PendingAction.Pause:
+                        if (await _media.PauseIfPlayingAsync()) _wePaused = true;
+                        break;
+                    case PendingAction.Resume:
+                        if (_wePaused)
+                        {
+                            _wePaused = false;
+                            await _media.ResumeAsync();
+                        }
+                        break;
+                }
             }
         }
         catch (Exception ex)
         {
             Log.Error("Auto-Pause fehlgeschlagen", ex);
         }
+        finally
+        {
+            _fireLock.Release();
+        }
     }
 
-    public void Dispose() => _timer.Dispose();
+    public void Reset()
+    {
+        lock (_gate)
+        {
+            _wornCount = null;
+            _pending = PendingAction.None;
+            _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+        }
+    }
+
+    public void Dispose()
+    {
+        _timer.Dispose();
+        _fireLock.Dispose();
+    }
 }

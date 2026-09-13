@@ -119,8 +119,16 @@ public sealed class AirPodsScanner : IDisposable
                 if (LogRawPackets)
                     Log.Debug($"RX {args.RawSignalStrengthInDBm} dBm {Convert.ToHexString(bytes)}");
 
-                if (adv.Model == AirPodsModel.Unknown && _loggedUnknownModels.Add(adv.ModelId))
-                    Log.Info($"Unbekannte Modell-ID 0x{adv.ModelId:X4}, Paket {Convert.ToHexString(bytes)}");
+                if (adv.Model == AirPodsModel.Unknown)
+                {
+                    var isNew = false;
+                    lock (_loggedUnknownModels)
+                    {
+                        isNew = _loggedUnknownModels.Add(adv.ModelId);
+                    }
+                    if (isNew)
+                        Log.Info($"Unbekannte Modell-ID 0x{adv.ModelId:X4}, Paket {Convert.ToHexString(bytes)}");
+                }
 
                 Received?.Invoke(new AdvertisementReceived(adv, args.RawSignalStrengthInDBm, args.Timestamp));
             }

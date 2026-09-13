@@ -72,11 +72,15 @@ public partial class App : Application
         store.LidOpened += state => OnUi(() => popup.ShowFor(state.Advertisement));
         store.EarStateChanged += (state, _) =>
             autoPause.OnEarState(state.Advertisement.LeftInEar, state.Advertisement.RightInEar);
-        store.DeviceLost += () => OnUi(() =>
+        store.DeviceLost += () =>
         {
-            RefreshTooltip();
-            Log.Info("Gerät verloren");
-        });
+            autoPause.Reset();
+            OnUi(() =>
+            {
+                RefreshTooltip();
+                Log.Info("Gerät verloren");
+            });
+        };
 
         scanner.Start();
     }

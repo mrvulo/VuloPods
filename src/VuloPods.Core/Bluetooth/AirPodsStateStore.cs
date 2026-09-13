@@ -50,7 +50,6 @@ public sealed class AirPodsStateStore : IDisposable
             }
             else if (current.Advertisement.ModelId == adv.ModelId)
             {
-                _challengerCount = 0;
                 Current = next;
                 var prev = current.Advertisement;
                 if (adv != prev)

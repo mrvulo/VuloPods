@@ -129,4 +129,16 @@ public class AutoPausePolicyTests
 
         Assert.Equal(1, _media.ResumeCalls);
     }
+
+    [Fact]
+    public void Reset_ClearsBaseline_SoNextObservationDoesNothing()
+    {
+        using var policy = new AutoPausePolicy(_media, _time);
+        _media.Playing = true;
+        policy.OnEarState(true, true);
+        policy.Reset();
+        policy.OnEarState(false, false);
+        _time.Advance(TimeSpan.FromSeconds(2));
+        Assert.Equal(0, _media.PauseCalls);
+    }
 }
