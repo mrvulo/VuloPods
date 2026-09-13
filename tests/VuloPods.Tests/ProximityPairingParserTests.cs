@@ -135,4 +135,25 @@ public class ProximityPairingParserTests
         p[2] = 0x00;
         Assert.Null(ProximityPairingParser.Parse(p));
     }
+
+    [Fact]
+    public void RealPacket_AirPods3_InCase_LidOpen_Charging()
+    {
+        // Aufgezeichnet am 2026-09-13: AirPods 3 im Case, Deckel offen, Pods laden, Case 20 %
+        var bytes = Convert.FromHexString("0719011320F5AAB2510000D45AC1069A9C3FA07E4F70604ACA7434");
+        var adv = ProximityPairingParser.Parse(bytes);
+        Assert.NotNull(adv);
+        Assert.Equal(AirPodsModel.AirPods3, adv.Model);
+        Assert.Equal(100, adv.LeftBattery);
+        Assert.Equal(100, adv.RightBattery);
+        Assert.Equal(20, adv.CaseBattery);
+        Assert.True(adv.LeftCharging);
+        Assert.True(adv.RightCharging);
+        Assert.False(adv.CaseCharging);
+        Assert.True(adv.BothInCase);
+        Assert.False(adv.LeftInEar);
+        Assert.False(adv.RightInEar);
+        Assert.True(adv.LidOpen);
+        Assert.Equal(1, adv.LidOpenCounter);
+    }
 }

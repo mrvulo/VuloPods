@@ -99,7 +99,7 @@ Geräte werden als Testfälle ergänzt.
 
 ### Geräteauswahl
 
-- Kandidat = jedes gültige Paket mit Modell-ID, RSSI ≥ −75 dBm
+- Kandidat = jedes gültige Paket mit Modell-ID, RSSI ≥ −100 dBm (ursprünglich −75; reale Adapter liefern deutlich schwächere Werte, die Auswahl läuft über die relative Stärke)
 - Solange kein aktives Gerät: erster Kandidat wird aktiv
 - Anderes Gerät übernimmt nur, wenn es in 5 aufeinanderfolgenden Paketen jeweils
   mindestens 10 dBm stärker ist als das zuletzt vom aktiven Gerät gemessene RSSI

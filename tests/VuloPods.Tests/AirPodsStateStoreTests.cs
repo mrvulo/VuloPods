@@ -31,7 +31,7 @@ public class AirPodsStateStoreTests
     public void PacketBelowThreshold_IsIgnored_WhenNoDevice()
     {
         using var store = new AirPodsStateStore(_time);
-        store.Push(Rx(Adv(), rssi: -80));
+        store.Push(Rx(Adv(), rssi: -105));
         Assert.Null(store.Current);
     }
 
@@ -40,7 +40,7 @@ public class AirPodsStateStoreTests
     {
         using var store = new AirPodsStateStore(_time);
         store.Push(Rx(Adv(left: 80)));
-        store.Push(Rx(Adv(left: 70), rssi: -90));
+        store.Push(Rx(Adv(left: 70), rssi: -110));
         Assert.Equal(70, store.Current!.Advertisement.LeftBattery);
     }
 

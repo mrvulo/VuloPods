@@ -4,7 +4,8 @@ namespace VuloPods.Core.Bluetooth;
 
 public sealed class AirPodsStateStore : IDisposable
 {
-    public const short MinRssi = -75;
+    // Reale Adapter melden oft −90 dBm und schwächer; die Auswahl erfolgt über die relative Stärke (Takeover-Regel).
+    public const short MinRssi = -100;
     public const short TakeoverMarginDb = 10;
     public const int TakeoverPackets = 5;
     public static readonly TimeSpan LostTimeout = TimeSpan.FromSeconds(30);
