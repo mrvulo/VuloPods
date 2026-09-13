@@ -87,14 +87,15 @@ Herstellerdaten: `07 19 <payload 25 Byte>`. Relevante Offsets (ab Beginn der Her
 | Byte | Inhalt |
 |---|---|
 | 3–4 | Modell-ID (Big Endian), z. B. 0x0E20 = AirPods Pro 1, 0x1420 = AirPods Pro 2, 0x2420 = AirPods Pro 2 USB-C, 0x0220 = AirPods 1, 0x0F20 = AirPods 2, 0x1320 = AirPods 3, 0x1920 = AirPods 4, 0x1B20 = AirPods 4 ANC, 0x0A20 = AirPods Max, 0x2720 = AirPods Pro 3. Die Tabelle wird beim Aufzeichnen der eigenen Geräte verifiziert und ergänzt |
-| 5 | Status-Bits: Bit 5 = „dieser Pod ist primär = links“, In-Ear-Bits für primär/sekundär, „Pod im Case“ |
-| 6 | Akku: oberes Nibble rechter Pod, unteres Nibble linker Pod (aus Sicht der Primär-Seite; wird per Bit 5 gespiegelt). 0–9 → 0–90 %, 0xA–0xE → 100 %, 0xF → unbekannt |
-| 7 | oberes Nibble: Lade-Flags (Bit 4 rechts, Bit 5 links, Bit 6 Case); unteres Nibble: Case-Akku wie oben |
-| 8 | Deckel: Bit 3 = offen, Bits 0–2 = Lid-Open-Counter; gültig nur, wenn Pods im Case |
+| 5 | Status-Bits (LSB = Bit 0): Bit 1 = sendender Pod („current“) im Ohr, Bit 2 = beide Pods im Case, Bit 3 = anderer Pod im Ohr, Bit 5 = sendender Pod ist der linke (gesetzt) bzw. der rechte (nicht gesetzt) |
+| 6 | Akku: unteres Nibble = sendender Pod, oberes Nibble = anderer Pod; Zuordnung zu links/rechts über Bit 5 von Byte 5. 0–9 → 0–90 %, 0xA–0xE → 100 %, 0xF → unbekannt |
+| 7 | unteres Nibble: Case-Akku wie oben; Bit 4 = sendender Pod lädt, Bit 5 = anderer Pod lädt, Bit 6 = Case lädt |
+| 8 | Deckel: Bits 0–2 = Lid-Counter (zählt bei jedem Öffnen/Schließen), Bit 3 = **geschlossen** (gesetzt) bzw. offen (nicht gesetzt); nur aussagekräftig, solange mindestens ein Pod im Case ist |
 | 11–26 | verschlüsselt, wird ignoriert |
 
-Die genaue Bit-Zuordnung von Byte 5 wird bei der Implementierung gegen die librepods-Doku
-und aufgezeichnete Pakete abgeglichen; Tests fixieren das Ergebnis.
+Quelle der Bit-Zuordnung: AirPodsDesktop (`AppleCP.h`, unter Windows feldgetestet) und
+OpenPods (`PodsStatus.java`); beide stimmen überein. Aufgezeichnete Pakete der eigenen
+Geräte werden als Testfälle ergänzt.
 
 ### Geräteauswahl
 
