@@ -9,6 +9,7 @@ using VuloPods.Core.Bluetooth;
 using VuloPods.Core.Logging;
 using VuloPods.Core.Media;
 using VuloPods.Core.Models;
+using VuloPods.Core.System;
 
 namespace VuloPods.App;
 
@@ -44,6 +45,9 @@ public partial class App : Application
             Log.Error("Unbeobachtete Task-Ausnahme", args.Exception);
             args.SetObserved();
         };
+
+        ApplyTheme();
+        Microsoft.Win32.SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
 
         // Lokale Variablen statt Felder in den Lambdas, damit die Nullable-Analyse keine Warnungen erzeugt.
         var time = TimeProvider.System;
@@ -151,6 +155,18 @@ public partial class App : Application
         });
     }
 
+    private void ApplyTheme()
+    {
+        var uri = new Uri(WindowsTheme.IsLight() ? "Themes/Light.xaml" : "Themes/Dark.xaml", UriKind.Relative);
+        Resources.MergedDictionaries.Clear();
+        Resources.MergedDictionaries.Add(new ResourceDictionary { Source = uri });
+    }
+
+    private void OnUserPreferenceChanged(object? sender, Microsoft.Win32.UserPreferenceChangedEventArgs e)
+    {
+        if (e.Category == Microsoft.Win32.UserPreferenceCategory.General) OnUi(ApplyTheme);
+    }
+
     private void RefreshTooltip() =>
         _tray?.SetTooltip(StatusText.Tooltip(_store?.Current?.Advertisement, _scannerStatus));
 
@@ -164,6 +180,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        Microsoft.Win32.SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
         _scanner?.Dispose();
         _store?.Dispose();
         _autoPause?.Dispose();

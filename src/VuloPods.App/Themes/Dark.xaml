@@ -1,0 +1,9 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="PopupBackground" Color="#EE1E1E22" />
+    <SolidColorBrush x:Key="PopupText" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="PopupSubtle" Color="#BBBBBB" />
+    <SolidColorBrush x:Key="BarBackground" Color="#33FFFFFF" />
+    <SolidColorBrush x:Key="BarForeground" Color="#4CD964" />
+    <SolidColorBrush x:Key="AccentInEar" Color="#4CD964" />
+</ResourceDictionary>
