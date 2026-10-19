@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Threading;
 using VuloPods.Core.Bluetooth;
@@ -49,6 +51,7 @@ public partial class App : Application
         var popup = _popup = new PopupWindow();
 
         tray.ShowRequested += () => popup.ShowFor(store.Current?.Advertisement);
+        tray.ExportDiagnosticsRequested += () => _ = ExportDiagnosticsAsync();
         tray.ExitRequested += () => Shutdown();
 
         scanner.Received += store.Push;
@@ -83,6 +86,47 @@ public partial class App : Application
         };
 
         scanner.Start();
+    }
+
+    private async Task ExportDiagnosticsAsync()
+    {
+        try
+        {
+            var zipPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+                $"VuloPods-Diagnose-{DateTime.Now:yyyyMMdd-HHmmss}.zip");
+            var adapterName = await GetBluetoothAdapterNameAsync();
+            var systemInfo = string.Join(Environment.NewLine,
+                $"OS: {Environment.OSVersion.VersionString}",
+                $"App: {typeof(App).Assembly.GetName().Version}",
+                $".NET: {Environment.Version}",
+                $"Bluetooth-Adapter: {adapterName}");
+            var packets = _scanner?.RecentRawPackets ?? Array.Empty<string>();
+
+            await Task.Run(() => DiagnosticsExporter.Export(Log.DefaultDirectory, packets, systemInfo, zipPath));
+            Log.Info($"Diagnose exportiert: {zipPath}");
+            Process.Start("explorer.exe", $"/select,\"{zipPath}\"");
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Diagnose-Export fehlgeschlagen", ex);
+        }
+    }
+
+    private static async Task<string> GetBluetoothAdapterNameAsync()
+    {
+        try
+        {
+            var adapter = await global::Windows.Devices.Bluetooth.BluetoothAdapter.GetDefaultAsync();
+            if (adapter is null) return "unbekannt";
+            var info = await global::Windows.Devices.Enumeration.DeviceInformation.CreateFromIdAsync(adapter.DeviceId);
+            return string.IsNullOrWhiteSpace(info?.Name) ? "unbekannt" : info.Name;
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Bluetooth-Adapter-Name nicht ermittelbar", ex);
+            return "unbekannt";
+        }
     }
 
     private void RefreshTooltip() =>
