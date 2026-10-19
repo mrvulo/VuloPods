@@ -1,6 +1,9 @@
 using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
+using VuloPods.App.Interop;
+using VuloPods.Core.Logging;
 using VuloPods.Core.Models;
 
 namespace VuloPods.App;
@@ -12,6 +15,7 @@ public partial class PopupWindow : Window
 
     private readonly PopupViewModel _viewModel = new();
     private readonly DispatcherTimer _autoHide;
+    private MouseHook? _mouseHook;
 
     public PopupWindow()
     {
@@ -19,7 +23,6 @@ public partial class PopupWindow : Window
         DataContext = _viewModel;
         _autoHide = new DispatcherTimer { Interval = AutoHideDelay };
         _autoHide.Tick += (_, _) => FadeOut();
-        Deactivated += (_, _) => HideNow();
     }
 
     public void ShowFor(AirPodsAdvertisement? adv)
@@ -29,9 +32,40 @@ public partial class PopupWindow : Window
         BeginAnimation(OpacityProperty, null);
         Opacity = 1;
         Show();
-        Activate();
+        EnsureMouseHook();
         _autoHide.Stop();
         _autoHide.Start();
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        // Kein Fokusklau und kein Alt-Tab-Eintrag.
+        WindowStyles.MakeNoActivateToolWindow(new WindowInteropHelper(this).Handle);
+    }
+
+    private void EnsureMouseHook()
+    {
+        if (_mouseHook is not null) return;
+        try
+        {
+            _mouseHook = new MouseHook();
+            _mouseHook.ButtonDown += OnGlobalButtonDown;
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Maus-Hook konnte nicht installiert werden", ex);
+        }
+    }
+
+    private void OnGlobalButtonDown(int x, int y)
+    {
+        // Läuft im Hook-Callback: nur schnell prüfen, das Verstecken asynchron auf den Dispatcher legen.
+        if (!IsVisible) return;
+        var topLeft = PointToScreen(new Point(0, 0));
+        var bottomRight = PointToScreen(new Point(ActualWidth, ActualHeight));
+        var inside = x >= topLeft.X && x <= bottomRight.X && y >= topLeft.Y && y <= bottomRight.Y;
+        if (!inside) Dispatcher.BeginInvoke(HideNow);
     }
 
     public void RefreshIfVisible(AirPodsAdvertisement? adv)
@@ -57,6 +91,8 @@ public partial class PopupWindow : Window
     private void HideNow()
     {
         _autoHide.Stop();
+        _mouseHook?.Dispose();
+        _mouseHook = null;
         BeginAnimation(OpacityProperty, null);
         Hide();
     }

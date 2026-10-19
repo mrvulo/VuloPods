@@ -5,7 +5,7 @@
         Title="VuloPods"
         Width="300" Height="150"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
-        ResizeMode="NoResize" ShowInTaskbar="False" Topmost="True" ShowActivated="True">
+        ResizeMode="NoResize" ShowInTaskbar="False" Topmost="True" ShowActivated="False">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <Style x:Key="Bar" TargetType="ProgressBar">
