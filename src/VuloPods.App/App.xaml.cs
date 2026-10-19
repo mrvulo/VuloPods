@@ -2,6 +2,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
+using VuloPods.App.Interop;
+using VuloPods.App.Notifications;
+using VuloPods.Core.Battery;
 using VuloPods.Core.Bluetooth;
 using VuloPods.Core.Logging;
 using VuloPods.Core.Media;
@@ -46,6 +49,7 @@ public partial class App : Application
         var time = TimeProvider.System;
         var store = _store = new AirPodsStateStore(time);
         var autoPause = _autoPause = new AutoPausePolicy(new MediaController(), time);
+        var lowBattery = new LowBatteryPolicy();
         var scanner = _scanner = new AirPodsScanner(time) { LogRawPackets = e.Args.Contains("--dump") };
         var tray = _tray = new TrayService();
         var popup = _popup = new PopupWindow();
@@ -65,13 +69,18 @@ public partial class App : Application
         {
             autoPause.OnEarState(state.Advertisement.LeftInEar, state.Advertisement.RightInEar);
             OnUi(RefreshTooltip);
+            EvaluateLowBattery(lowBattery, state);
             Log.Info($"Gerät: {AirPodsModels.DisplayName(state.Advertisement.Model)} (0x{state.Advertisement.ModelId:X4}), {state.Rssi} dBm");
         };
-        store.StateChanged += _ => OnUi(() =>
+        store.StateChanged += state =>
         {
-            RefreshTooltip();
-            popup.RefreshIfVisible(store.Current?.Advertisement);
-        });
+            EvaluateLowBattery(lowBattery, state);
+            OnUi(() =>
+            {
+                RefreshTooltip();
+                popup.RefreshIfVisible(store.Current?.Advertisement);
+            });
+        };
         store.LidOpened += state => OnUi(() => popup.ShowFor(state.Advertisement));
         store.EarStateChanged += (state, _) =>
             autoPause.OnEarState(state.Advertisement.LeftInEar, state.Advertisement.RightInEar);
@@ -80,6 +89,7 @@ public partial class App : Application
             autoPause.Reset();
             OnUi(() =>
             {
+                lowBattery.Reset();
                 RefreshTooltip();
                 Log.Info("Gerät verloren");
             });
@@ -127,6 +137,18 @@ public partial class App : Application
             Log.Error("Bluetooth-Adapter-Name nicht ermittelbar", ex);
             return "unbekannt";
         }
+    }
+
+    private void EvaluateLowBattery(LowBatteryPolicy policy, AirPodsState state)
+    {
+        // Die Policy ist nicht thread-sicher; Events kommen vom Scanner-Thread, daher alles auf dem UI-Thread.
+        OnUi(() =>
+        {
+            foreach (var alert in policy.Evaluate(state.Advertisement))
+            {
+                if (!FullscreenDetector.IsFullscreenForeground()) ToastNotifier.ShowLowBattery(alert);
+            }
+        });
     }
 
     private void RefreshTooltip() =>
