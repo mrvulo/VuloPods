@@ -19,11 +19,26 @@ public sealed class AirPodsScanner : IDisposable
     private readonly object _gate = new();
     private readonly ITimer _retryTimer;
     private readonly HashSet<ushort> _loggedUnknownModels = new();
+    private readonly object _packetGate = new();
+    private readonly Queue<string> _recentPackets = new();
+    private const int MaxRecentPackets = 200;
     private BluetoothLEAdvertisementWatcher? _watcher;
     private bool _wantRunning;
 
     /// <summary>Wenn true, wird jedes geparste Paket als Hex ins Log geschrieben (zum Aufzeichnen von Testfällen).</summary>
     public bool LogRawPackets { get; set; }
+
+    /// <summary>Die letzten 200 Apple-Rohpakete ("yyyy-MM-dd HH:mm:ss.fff &lt;rssi&gt; dBm &lt;HEX&gt;"), immer aufgezeichnet; Kopie, thread-sicher.</summary>
+    public IReadOnlyList<string> RecentRawPackets
+    {
+        get
+        {
+            lock (_packetGate)
+            {
+                return _recentPackets.ToArray();
+            }
+        }
+    }
 
     public event Action<AdvertisementReceived>? Received;
     public event Action<ScannerStatus>? StatusChanged;
@@ -113,6 +128,8 @@ public sealed class AirPodsScanner : IDisposable
                     reader.ReadBytes(bytes);
                 }
 
+                RecordPacket(args.RawSignalStrengthInDBm, bytes);
+
                 if (LogRawPackets && bytes.Length > 0 && bytes[0] == 0x07)
                     Log.Debug($"RAW {args.RawSignalStrengthInDBm} dBm {Convert.ToHexString(bytes)}");
 
@@ -139,6 +156,17 @@ public sealed class AirPodsScanner : IDisposable
         catch (Exception ex)
         {
             Log.Error("Fehler beim Verarbeiten eines Werbepakets", ex);
+        }
+    }
+
+    private void RecordPacket(short rssi, byte[] bytes)
+    {
+        var line = $"{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss.fff} {rssi} dBm {Convert.ToHexString(bytes)}";
+        lock (_packetGate)
+        {
+            _recentPackets.Enqueue(line);
+            while (_recentPackets.Count > MaxRecentPackets)
+                _recentPackets.Dequeue();
         }
     }
 
