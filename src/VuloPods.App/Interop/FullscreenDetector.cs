@@ -39,6 +39,10 @@ public static class FullscreenDetector
     [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     private static extern int GetClassName(IntPtr hWnd, StringBuilder className, int maxCount);
 
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsZoomed(IntPtr hWnd);
+
     /// <summary>True, wenn das Vordergrundfenster einen ganzen Monitor abdeckt und nicht die Shell (Desktop) ist. Bei Fehlern false.</summary>
     public static bool IsFullscreenForeground()
     {
@@ -46,6 +50,9 @@ public static class FullscreenDetector
         {
             var hwnd = GetForegroundWindow();
             if (hwnd == IntPtr.Zero) return false;
+            // Maximierte Fenster ragen um die Rahmenbreite über den Monitor hinaus und würden
+            // sonst als Vollbild gelten. Echte Vollbild-Apps (Spiele, F11) sind nie "zoomed".
+            if (IsZoomed(hwnd)) return false;
             if (!GetWindowRect(hwnd, out var window)) return false;
 
             var monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
