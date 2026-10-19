@@ -15,7 +15,10 @@ public class AirPodsModelTests
     [InlineData(0x2420, AirPodsModel.AirPodsPro2)]
     [InlineData(0x2720, AirPodsModel.AirPodsPro3)]
     [InlineData(0x0A20, AirPodsModel.AirPodsMax)]
-    [InlineData(0x1F20, AirPodsModel.AirPodsMax)]
+    [InlineData(0x1F20, AirPodsModel.AirPodsMaxUsbC)]
+    [InlineData(0x3020, AirPodsModel.AirPods5)]
+    [InlineData(0x3620, AirPodsModel.AirPods5)]
+    [InlineData(0x1220, AirPodsModel.BeatsFitPro)]
     [InlineData(0x9999, AirPodsModel.Unknown)]
     public void FromId_MapsKnownIds(int id, AirPodsModel expected)
     {
@@ -25,6 +28,9 @@ public class AirPodsModelTests
     [Theory]
     [InlineData(AirPodsModel.AirPodsPro2, "AirPods Pro (2. Gen)")]
     [InlineData(AirPodsModel.AirPods4Anc, "AirPods 4 (ANC)")]
+    [InlineData(AirPodsModel.AirPods5, "AirPods 5")]
+    [InlineData(AirPodsModel.AirPodsMaxUsbC, "AirPods Max (USB-C)")]
+    [InlineData(AirPodsModel.BeatsFitPro, "Beats Fit Pro")]
     [InlineData(AirPodsModel.Unknown, "AirPods (unbekannt)")]
     public void DisplayName_IsGerman(AirPodsModel model, string expected)
     {

@@ -12,6 +12,9 @@ public enum AirPodsModel
     AirPodsPro2,
     AirPodsPro3,
     AirPodsMax,
+    AirPods5,
+    AirPodsMaxUsbC,
+    BeatsFitPro,
 }
 
 public static class AirPodsModels
@@ -31,7 +34,10 @@ public static class AirPodsModels
         0x2420 => AirPodsModel.AirPodsPro2,
         0x2720 => AirPodsModel.AirPodsPro3,
         0x0A20 => AirPodsModel.AirPodsMax,
-        0x1F20 => AirPodsModel.AirPodsMax,
+        0x1F20 => AirPodsModel.AirPodsMaxUsbC,
+        0x3020 => AirPodsModel.AirPods5,
+        0x3620 => AirPodsModel.AirPods5,
+        0x1220 => AirPodsModel.BeatsFitPro,
         _ => AirPodsModel.Unknown,
     };
 
@@ -46,6 +52,9 @@ public static class AirPodsModels
         AirPodsModel.AirPodsPro2 => "AirPods Pro (2. Gen)",
         AirPodsModel.AirPodsPro3 => "AirPods Pro (3. Gen)",
         AirPodsModel.AirPodsMax => "AirPods Max",
+        AirPodsModel.AirPods5 => "AirPods 5",
+        AirPodsModel.AirPodsMaxUsbC => "AirPods Max (USB-C)",
+        AirPodsModel.BeatsFitPro => "Beats Fit Pro",
         _ => "AirPods (unbekannt)",
     };
 }
