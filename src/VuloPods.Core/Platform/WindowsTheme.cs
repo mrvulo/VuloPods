@@ -22,4 +22,19 @@ public static class WindowsTheme
             return false;
         }
     }
+
+    /// <summary>true = helle Taskleiste (SystemUsesLightTheme). Fehlender Wert oder Fehler → false (dunkel).</summary>
+    public static bool IsTaskbarLight()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(PersonalizeKey, writable: false);
+            return key?.GetValue("SystemUsesLightTheme") is int value && value != 0;
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Taskleisten-Theme konnte nicht gelesen werden", ex);
+            return false;
+        }
+    }
 }
