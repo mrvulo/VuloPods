@@ -97,4 +97,13 @@ public class LowBatteryPolicyTests
 
         Assert.Single(policy.Evaluate(Adv(left: 10)));
     }
+
+    [Fact]
+    public void CustomThreshold_IsUsed()
+    {
+        var policy = new LowBatteryPolicy(30);
+
+        Assert.Equal(new LowBatteryAlert(BatteryPart.Left, 30), Assert.Single(policy.Evaluate(Adv(left: 30))));
+        Assert.Empty(policy.Evaluate(Adv(right: 35)));
+    }
 }

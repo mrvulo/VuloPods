@@ -13,7 +13,9 @@ public sealed record LowBatteryAlert(BatteryPart Part, int Percent);
 /// </summary>
 public sealed class LowBatteryPolicy
 {
-    public const int Threshold = 20;
+    public LowBatteryPolicy(int threshold = 20) => Threshold = threshold;
+
+    public int Threshold { get; }
 
     private readonly bool[] _alerted = new bool[3];
 
