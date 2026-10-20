@@ -9,7 +9,8 @@ Windows-Tray-App für Apple AirPods: Akkustand, Deckel-Popup, Ohr-Erkennung mit 
 - Akkustand von linkem Pod, rechtem Pod und Case im Tray-Tooltip (10%-Schritte)
 - Popup beim Öffnen des Case-Deckels, Linksklick aufs Tray-Icon zeigt es jederzeit
 - Medien pausieren, wenn ein Pod aus dem Ohr genommen wird; weiterspielen beim Einsetzen
-- Autostart-Schalter im Tray-Menü („Mit Windows starten“)
+- Einstellungsfenster (Tray-Menü „Einstellungen…“ oder Doppelklick aufs Tray-Icon): Autostart, Popup bei Deckel-Öffnung und Anzeigedauer, Auto-Pause, Akku-Warnung samt Schwelle, Tray-Icon-Stil, Design; Änderungen gelten sofort
+- Akku in Prozent direkt im Tray-Icon (niedrigster Pod-Wert; rot bei niedrigem Akku, grün beim Laden), alternativ das Logo
 - Akku-Warnung unter 20 % als Windows-Toast (nicht im Vollbild)
 - Popup ohne Fokusklau; ein Klick daneben schließt es
 - Helles/dunkles Design folgt der Windows-Einstellung
@@ -17,6 +18,10 @@ Windows-Tray-App für Apple AirPods: Akkustand, Deckel-Popup, Ohr-Erkennung mit 
 - Erkennung von AirPods 5, AirPods Max (USB-C) und Beats Fit Pro
 
 Nicht enthalten: Geräuschmodus (ANC/Transparenz). Der braucht unter Windows einen Kernel-Treiber und ist als Teilprojekt 2 geplant.
+
+## Download
+
+Fertige EXE unter Releases: https://github.com/mrvulo/VuloPods/releases – ZIP entpacken, VuloPods.exe starten, kein .NET nötig.
 
 ## Installieren
 
@@ -59,7 +64,7 @@ dotnet run --project src/VuloPods.App -- --dump
 ## Projektstruktur
 
 - `src/VuloPods.Core` – Parser, Zustandslogik, Auto-Pause, WinRT-Anbindung
-- `src/VuloPods.App` – WPF: Tray-Icon, Popup
+- `src/VuloPods.App` – WPF: Tray-Icon, Popup, Einstellungsfenster
 - `tests/VuloPods.Tests` – xUnit
 - `docs/superpowers/specs` – Design, `docs/superpowers/plans` – Implementierungsplan
 
