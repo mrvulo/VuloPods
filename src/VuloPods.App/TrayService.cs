@@ -1,6 +1,8 @@
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using H.NotifyIcon;
 using VuloPods.Core.Platform;
 
@@ -15,6 +17,8 @@ public sealed class TrayService : IDisposable
     private System.Drawing.Icon? _custom;
     private MenuItem? _showItem;
     private readonly List<Control> _connectItems = new();
+    private readonly DispatcherTimer _leftClickTimer = new();
+    private long _lastDoubleClickTick = long.MinValue;
 
     public event Action? ShowRequested;
     public event Action? SettingsRequested;
@@ -37,10 +41,37 @@ public sealed class TrayService : IDisposable
             IconSource = new BitmapImage(LogoUri),
             ToolTipText = "VuloPods – kein Gerät",
             ContextMenu = Menu,
-            LeftClickCommand = new DelegateCommand(() => ShowRequested?.Invoke()),
-            DoubleClickCommand = new DelegateCommand(() => SettingsRequested?.Invoke()),
         };
+        // H.NotifyIcon verzögert den Linksklick von sich aus nicht zuverlässig (NoLeftClickDelay ist schon
+        // false, das Popup blitzte trotzdem), daher eine eigene Verzögerung um die Doppelklickzeit.
+        _leftClickTimer.Tick += (_, _) =>
+        {
+            _leftClickTimer.Stop();
+            ShowRequested?.Invoke();
+        };
+        _icon.TrayLeftMouseUp += (_, _) => OnLeftMouseUp();
+        _icon.TrayLeftMouseDoubleClick += (_, _) => OnLeftDoubleClick();
         _icon.ForceCreate();
+    }
+
+    [DllImport("user32.dll")]
+    private static extern uint GetDoubleClickTime();
+
+    private void OnLeftMouseUp()
+    {
+        var interval = (int)GetDoubleClickTime();
+        // Nach einem Doppelklick folgt noch ein Mouse-Up; das darf kein Popup mehr auslösen.
+        if (Environment.TickCount64 - _lastDoubleClickTick < interval) return;
+        _leftClickTimer.Stop();
+        _leftClickTimer.Interval = TimeSpan.FromMilliseconds(interval);
+        _leftClickTimer.Start();
+    }
+
+    private void OnLeftDoubleClick()
+    {
+        _leftClickTimer.Stop();
+        _lastDoubleClickTick = Environment.TickCount64;
+        SettingsRequested?.Invoke();
     }
 
     private ContextMenu BuildMenu()
@@ -137,6 +168,7 @@ public sealed class TrayService : IDisposable
 
     public void Dispose()
     {
+        _leftClickTimer.Stop();
         _icon.Dispose();
         _custom?.Dispose();
         _logo?.Dispose();
