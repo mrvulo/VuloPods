@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/assets/logo.png" alt="VuloPods" width="160"></p>
+
 # VuloPods
 
 Windows-Tray-App für Apple AirPods: Akkustand, Deckel-Popup, Ohr-Erkennung mit Auto-Pause. Ohne Kernel-Treiber.
@@ -16,9 +18,21 @@ Windows-Tray-App für Apple AirPods: Akkustand, Deckel-Popup, Ohr-Erkennung mit 
 
 Nicht enthalten: Geräuschmodus (ANC/Transparenz). Der braucht unter Windows einen Kernel-Treiber und ist als Teilprojekt 2 geplant.
 
-## Bauen und starten
+## Installieren
 
 Voraussetzungen: Windows 10 2004 oder neuer, .NET 8 SDK, Bluetooth-LE-Adapter.
+
+```bash
+powershell -ExecutionPolicy Bypass -File scripts/install.ps1
+```
+
+Das Skript baut die Release-Version, installiert sie nach `%LocalAppData%\Programs\VuloPods`, legt Verknüpfungen im Startmenü und auf dem Desktop an und startet VuloPods. Erneut ausführen aktualisiert die Installation. Entfernen:
+
+```bash
+powershell -ExecutionPolicy Bypass -File scripts/uninstall.ps1
+```
+
+## Bauen und starten (Entwicklung)
 
 ```bash
 dotnet build
