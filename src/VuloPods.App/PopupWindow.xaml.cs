@@ -10,8 +10,10 @@ namespace VuloPods.App;
 
 public partial class PopupWindow : Window
 {
-    public static readonly TimeSpan AutoHideDelay = TimeSpan.FromSeconds(5);
     private static readonly Duration FadeDuration = new(TimeSpan.FromMilliseconds(250));
+
+    /// <summary>Anzeigedauer; wirkt beim nächsten Anzeigen.</summary>
+    public TimeSpan AutoHideDelay { get; set; } = TimeSpan.FromSeconds(5);
 
     private readonly PopupViewModel _viewModel = new();
     private readonly DispatcherTimer _autoHide;
@@ -21,7 +23,7 @@ public partial class PopupWindow : Window
     {
         InitializeComponent();
         DataContext = _viewModel;
-        _autoHide = new DispatcherTimer { Interval = AutoHideDelay };
+        _autoHide = new DispatcherTimer();
         _autoHide.Tick += (_, _) => FadeOut();
     }
 
@@ -34,6 +36,7 @@ public partial class PopupWindow : Window
         Show();
         EnsureMouseHook();
         _autoHide.Stop();
+        _autoHide.Interval = AutoHideDelay;
         _autoHide.Start();
     }
 

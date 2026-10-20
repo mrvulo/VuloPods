@@ -1,0 +1,140 @@
+<Window x:Class="VuloPods.App.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="VuloPods – Einstellungen"
+        Width="420" SizeToContent="Height"
+        ResizeMode="NoResize" WindowStartupLocation="CenterScreen"
+        Icon="pack://application:,,,/Assets/tray.ico"
+        Background="{DynamicResource WindowBackground}"
+        Foreground="{DynamicResource WindowText}">
+    <Window.Resources>
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource WindowText}" />
+            <Setter Property="Margin" Value="0,4" />
+        </Style>
+        <Style x:Key="GroupHeader" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Margin" Value="0,16,0,4" />
+        </Style>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource WindowText}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="{DynamicResource WindowText}" />
+            <Setter Property="Background" Value="{DynamicResource ControlBackground}" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#44808080" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Schlichtes ComboBox-Template: das Standard-Template ignoriert Hintergrund/Vordergrund und bliebe im dunklen Design unlesbar. -->
+        <Style TargetType="ComboBox">
+            <Setter Property="Foreground" Value="{DynamicResource WindowText}" />
+            <Setter Property="Background" Value="{DynamicResource ControlBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Width" Value="150" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}" Padding="8,4">
+                                <Grid>
+                                    <ContentPresenter Content="{TemplateBinding SelectionBoxItem}"
+                                                      ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                      VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,0,16,0" />
+                                    <Path Data="M0,0 L4,4 L8,0" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.5"
+                                          HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+                            <ToggleButton Focusable="False" ClickMode="Press" Opacity="0"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" />
+                            <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" AllowsTransparency="True"
+                                   Focusable="False" PopupAnimation="Fade">
+                                <Border MinWidth="{TemplateBinding ActualWidth}" Background="{DynamicResource ControlBackground}"
+                                        BorderBrush="{DynamicResource ControlBorder}" BorderThickness="1">
+                                    <ScrollViewer MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                        <ItemsPresenter />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <StackPanel Margin="24,8,24,24">
+        <TextBlock Style="{StaticResource GroupHeader}" Text="Allgemein" Margin="0,8,0,4" />
+        <CheckBox x:Name="AutostartBox" Content="Mit Windows starten" Checked="OnAutostartChanged" Unchecked="OnAutostartChanged" />
+
+        <TextBlock Style="{StaticResource GroupHeader}" Text="Popup" />
+        <CheckBox x:Name="PopupOnLidOpenBox" Content="Beim Öffnen des Deckels anzeigen" Checked="OnSettingChanged" Unchecked="OnSettingChanged" />
+        <Grid Margin="0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="40" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Anzeigedauer" Margin="0,0,12,0" />
+            <Slider x:Name="PopupSecondsSlider" Grid.Column="1" Minimum="3" Maximum="15" TickFrequency="1"
+                    IsSnapToTickEnabled="True" VerticalAlignment="Center" ValueChanged="OnPopupSecondsChanged" />
+            <TextBlock x:Name="PopupSecondsText" Grid.Column="2" HorizontalAlignment="Right" Text="5 s" />
+        </Grid>
+
+        <TextBlock Style="{StaticResource GroupHeader}" Text="Wiedergabe" />
+        <CheckBox x:Name="AutoPauseBox" Content="Pausieren, wenn ein AirPod herausgenommen wird" Checked="OnSettingChanged" Unchecked="OnSettingChanged" />
+
+        <TextBlock Style="{StaticResource GroupHeader}" Text="Akku" />
+        <CheckBox x:Name="LowBatteryBox" Content="Warnung bei niedrigem Akku" Checked="OnSettingChanged" Unchecked="OnSettingChanged" />
+        <Grid Margin="0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Schwelle" />
+            <ComboBox x:Name="ThresholdBox" Grid.Column="1" SelectionChanged="OnSelectionChanged" />
+        </Grid>
+
+        <TextBlock Style="{StaticResource GroupHeader}" Text="Darstellung" />
+        <Grid Margin="0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Tray-Icon" />
+            <ComboBox x:Name="TrayIconBox" Grid.Column="1" SelectionChanged="OnSelectionChanged" />
+        </Grid>
+        <Grid Margin="0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Design" />
+            <ComboBox x:Name="ThemeBox" Grid.Column="1" SelectionChanged="OnSelectionChanged" />
+        </Grid>
+
+        <TextBlock Style="{StaticResource GroupHeader}" Text="Info" />
+        <TextBlock x:Name="VersionText" Margin="0,4" />
+        <TextBlock Margin="0,4">
+            <Hyperlink NavigateUri="https://github.com/mrvulo/VuloPods" Click="OnGitHubClick">GitHub</Hyperlink>
+        </TextBlock>
+    </StackPanel>
+</Window>

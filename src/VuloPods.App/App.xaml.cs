@@ -10,6 +10,7 @@ using VuloPods.Core.Logging;
 using VuloPods.Core.Media;
 using VuloPods.Core.Models;
 using VuloPods.Core.Platform;
+using VuloPods.Core.Settings;
 
 namespace VuloPods.App;
 
@@ -21,6 +22,10 @@ public partial class App : Application
     private AutoPausePolicy? _autoPause;
     private TrayService? _tray;
     private PopupWindow? _popup;
+    private SettingsStore? _settings;
+    private SettingsWindow? _settingsWindow;
+    private AppSettings? _appliedSettings;
+    private LowBatteryPolicy _lowBattery = new();
     private ScannerStatus _scannerStatus = ScannerStatus.Scanning;
 
     protected override void OnStartup(StartupEventArgs e)
@@ -46,6 +51,9 @@ public partial class App : Application
             args.SetObserved();
         };
 
+        var settings = _settings = new SettingsStore(SettingsStore.DefaultPath);
+        settings.Load();
+
         ApplyTheme();
         Microsoft.Win32.SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
 
@@ -53,12 +61,15 @@ public partial class App : Application
         var time = TimeProvider.System;
         var store = _store = new AirPodsStateStore(time);
         var autoPause = _autoPause = new AutoPausePolicy(new MediaController(), time);
-        var lowBattery = new LowBatteryPolicy();
         var scanner = _scanner = new AirPodsScanner(time) { LogRawPackets = e.Args.Contains("--dump") };
         var tray = _tray = new TrayService();
         var popup = _popup = new PopupWindow();
 
+        ApplySettings(settings.Current);
+        settings.Changed += s => RunOnUi(() => ApplySettings(s));
+
         tray.ShowRequested += () => popup.ShowFor(store.Current?.Advertisement);
+        tray.SettingsRequested += ShowSettings;
         tray.ExportDiagnosticsRequested += () => _ = ExportDiagnosticsAsync();
         tray.ExitRequested += () => Shutdown();
 
@@ -71,29 +82,36 @@ public partial class App : Application
 
         store.DeviceAppeared += state =>
         {
-            autoPause.OnEarState(state.Advertisement.LeftInEar, state.Advertisement.RightInEar);
+            if (settings.Current.AutoPause)
+                autoPause.OnEarState(state.Advertisement.LeftInEar, state.Advertisement.RightInEar);
             OnUi(RefreshTooltip);
-            EvaluateLowBattery(lowBattery, state);
+            EvaluateLowBattery(state);
             Log.Info($"Gerät: {AirPodsModels.DisplayName(state.Advertisement.Model)} (0x{state.Advertisement.ModelId:X4}), {state.Rssi} dBm");
         };
         store.StateChanged += state =>
         {
-            EvaluateLowBattery(lowBattery, state);
+            EvaluateLowBattery(state);
             OnUi(() =>
             {
                 RefreshTooltip();
                 popup.RefreshIfVisible(store.Current?.Advertisement);
             });
         };
-        store.LidOpened += state => OnUi(() => popup.ShowFor(state.Advertisement));
+        store.LidOpened += state =>
+        {
+            if (settings.Current.PopupOnLidOpen) OnUi(() => popup.ShowFor(state.Advertisement));
+        };
         store.EarStateChanged += (state, _) =>
-            autoPause.OnEarState(state.Advertisement.LeftInEar, state.Advertisement.RightInEar);
+        {
+            if (settings.Current.AutoPause)
+                autoPause.OnEarState(state.Advertisement.LeftInEar, state.Advertisement.RightInEar);
+        };
         store.DeviceLost += () =>
         {
             autoPause.Reset();
             OnUi(() =>
             {
-                lowBattery.Reset();
+                _lowBattery.Reset();
                 RefreshTooltip();
                 Log.Info("Gerät verloren");
             });
@@ -143,34 +161,83 @@ public partial class App : Application
         }
     }
 
-    private void EvaluateLowBattery(LowBatteryPolicy policy, AirPodsState state)
+    private void EvaluateLowBattery(AirPodsState state)
     {
-        // Die Policy ist nicht thread-sicher; Events kommen vom Scanner-Thread, daher alles auf dem UI-Thread.
+        // Die Policy ist nicht thread-sicher und wird bei Schwellenänderung ersetzt; Events kommen vom
+        // Scanner-Thread, daher alles auf dem UI-Thread. Bei ausgeschalteter Warnung wird nicht bewertet,
+        // damit nach dem Wiedereinschalten ein bereits niedriger Stand noch gemeldet wird.
         OnUi(() =>
         {
-            foreach (var alert in policy.Evaluate(state.Advertisement))
+            if (_settings?.Current.LowBatteryWarning != true) return;
+            foreach (var alert in _lowBattery.Evaluate(state.Advertisement))
             {
                 if (!FullscreenDetector.IsFullscreenForeground()) ToastNotifier.ShowLowBattery(alert);
             }
         });
     }
 
+    /// <summary>Wendet die Einstellungen an; nur auf dem UI-Thread aufrufen.</summary>
+    private void ApplySettings(AppSettings s)
+    {
+        var previous = _appliedSettings;
+        _appliedSettings = s;
+
+        if (_popup is { } popup) popup.AutoHideDelay = TimeSpan.FromSeconds(s.PopupSeconds);
+        if (previous is null || previous.LowBatteryThreshold != s.LowBatteryThreshold)
+            _lowBattery = new LowBatteryPolicy(s.LowBatteryThreshold);
+        if (previous is { AutoPause: true } && !s.AutoPause) _autoPause?.Reset();
+        if (previous is not null && previous.Theme != s.Theme) ApplyTheme();
+    }
+
+    private void ShowSettings()
+    {
+        if (_settings is not { } settings) return;
+        if (_settingsWindow is { } existing)
+        {
+            if (existing.WindowState == WindowState.Minimized) existing.WindowState = WindowState.Normal;
+            existing.Activate();
+            return;
+        }
+
+        var window = new SettingsWindow(settings);
+        window.Closed += (_, _) => _settingsWindow = null;
+        _settingsWindow = window;
+        window.Show();
+        window.Activate();
+    }
+
     private void ApplyTheme()
     {
-        var uri = new Uri(WindowsTheme.IsLight() ? "Themes/Light.xaml" : "Themes/Dark.xaml", UriKind.Relative);
+        var light = _settings?.Current.Theme switch
+        {
+            ThemeMode.Light => true,
+            ThemeMode.Dark => false,
+            _ => WindowsTheme.IsLight(),
+        };
+        var uri = new Uri(light ? "Themes/Light.xaml" : "Themes/Dark.xaml", UriKind.Relative);
         Resources.MergedDictionaries.Clear();
         Resources.MergedDictionaries.Add(new ResourceDictionary { Source = uri });
     }
 
     private void OnUserPreferenceChanged(object? sender, Microsoft.Win32.UserPreferenceChangedEventArgs e)
     {
-        if (e.Category == Microsoft.Win32.UserPreferenceCategory.General) OnUi(ApplyTheme);
+        if (e.Category != Microsoft.Win32.UserPreferenceCategory.General) return;
+        OnUi(() =>
+        {
+            if (_settings?.Current.Theme == ThemeMode.System) ApplyTheme();
+        });
     }
 
     private void RefreshTooltip() =>
         _tray?.SetTooltip(StatusText.Tooltip(_store?.Current?.Advertisement, _scannerStatus));
 
     private void OnUi(Action action) => Dispatcher.BeginInvoke(action);
+
+    private void RunOnUi(Action action)
+    {
+        if (Dispatcher.CheckAccess()) action();
+        else Dispatcher.BeginInvoke(action);
+    }
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {

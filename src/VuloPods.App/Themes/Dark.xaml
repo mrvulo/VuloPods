@@ -6,4 +6,8 @@
     <SolidColorBrush x:Key="BarBackground" Color="#33FFFFFF" />
     <SolidColorBrush x:Key="BarForeground" Color="#4CD964" />
     <SolidColorBrush x:Key="AccentInEar" Color="#4CD964" />
+    <SolidColorBrush x:Key="WindowBackground" Color="#202024" />
+    <SolidColorBrush x:Key="WindowText" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="ControlBackground" Color="#2B2B30" />
+    <SolidColorBrush x:Key="ControlBorder" Color="#3A3A40" />
 </ResourceDictionary>
