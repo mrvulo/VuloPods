@@ -27,6 +27,9 @@ public partial class App : Application
     private AppSettings? _appliedSettings;
     private LowBatteryPolicy _lowBattery = new();
     private ScannerStatus _scannerStatus = ScannerStatus.Scanning;
+    private IconKey? _renderedIcon;
+
+    private readonly record struct IconKey(TrayBadge Badge, bool LightTaskbar, int SizePx);
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -84,7 +87,11 @@ public partial class App : Application
         {
             if (settings.Current.AutoPause)
                 autoPause.OnEarState(state.Advertisement.LeftInEar, state.Advertisement.RightInEar);
-            OnUi(RefreshTooltip);
+            OnUi(() =>
+            {
+                RefreshTooltip();
+                RefreshTrayIcon();
+            });
             EvaluateLowBattery(state);
             Log.Info($"Gerät: {AirPodsModels.DisplayName(state.Advertisement.Model)} (0x{state.Advertisement.ModelId:X4}), {state.Rssi} dBm");
         };
@@ -94,6 +101,7 @@ public partial class App : Application
             OnUi(() =>
             {
                 RefreshTooltip();
+                RefreshTrayIcon();
                 popup.RefreshIfVisible(store.Current?.Advertisement);
             });
         };
@@ -113,6 +121,7 @@ public partial class App : Application
             {
                 _lowBattery.Reset();
                 RefreshTooltip();
+                RefreshTrayIcon();
                 Log.Info("Gerät verloren");
             });
         };
@@ -187,6 +196,7 @@ public partial class App : Application
             _lowBattery = new LowBatteryPolicy(s.LowBatteryThreshold);
         if (previous is { AutoPause: true } && !s.AutoPause) _autoPause?.Reset();
         if (previous is not null && previous.Theme != s.Theme) ApplyTheme();
+        RefreshTrayIcon();
     }
 
     private void ShowSettings()
@@ -225,7 +235,38 @@ public partial class App : Application
         OnUi(() =>
         {
             if (_settings?.Current.Theme == ThemeMode.System) ApplyTheme();
+            RefreshTrayIcon();
         });
+    }
+
+    /// <summary>Setzt das Prozent-Icon oder das Logo; zeichnet nur neu, wenn sich Badge, Taskleisten-Theme oder Größe ändern.</summary>
+    private void RefreshTrayIcon()
+    {
+        if (_tray is not { } tray || _settings is not { } settings) return;
+
+        TrayBadge? badge = null;
+        if (settings.Current.TrayIcon == TrayIconStyle.Percent)
+            badge = TrayBadges.Compute(_store?.Current?.Advertisement, settings.Current.LowBatteryThreshold);
+
+        if (badge is null)
+        {
+            if (_renderedIcon is null) return;
+            _renderedIcon = null;
+            tray.SetIcon(null);
+            return;
+        }
+
+        var key = new IconKey(badge, WindowsTheme.IsTaskbarLight(), TrayIconRenderer.GetSmallIconSize());
+        if (_renderedIcon == key) return;
+        try
+        {
+            tray.SetIcon(TrayIconRenderer.Render(key.Badge, key.LightTaskbar, key.SizePx));
+            _renderedIcon = key;
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Tray-Icon konnte nicht gezeichnet werden", ex);
+        }
     }
 
     private void RefreshTooltip() =>

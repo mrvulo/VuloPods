@@ -1,3 +1,4 @@
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using H.NotifyIcon;
@@ -6,7 +7,11 @@ namespace VuloPods.App;
 
 public sealed class TrayService : IDisposable
 {
+    private static readonly Uri LogoUri = new("pack://application:,,,/Assets/tray.ico");
+
     private readonly TaskbarIcon _icon;
+    private System.Drawing.Icon? _logo;
+    private System.Drawing.Icon? _custom;
 
     public event Action? ShowRequested;
     public event Action? SettingsRequested;
@@ -22,7 +27,7 @@ public sealed class TrayService : IDisposable
 
         _icon = new TaskbarIcon
         {
-            IconSource = new BitmapImage(new Uri("pack://application:,,,/Assets/tray.ico")),
+            IconSource = new BitmapImage(LogoUri),
             ToolTipText = "VuloPods – kein Gerät",
             ContextMenu = Menu,
             LeftClickCommand = new DelegateCommand(() => ShowRequested?.Invoke()),
@@ -53,8 +58,26 @@ public sealed class TrayService : IDisposable
 
     public void SetTooltip(string text) => _icon.ToolTipText = text;
 
+    /// <summary>Setzt ein eigenes Icon; null stellt das Logo wieder her. Das vorherige eigene Icon wird freigegeben.</summary>
+    public void SetIcon(System.Drawing.Icon? icon)
+    {
+        var previous = _custom;
+        _custom = icon;
+        _icon.Icon = icon ?? (_logo ??= LoadLogo());
+        previous?.Dispose();
+    }
+
+    private static System.Drawing.Icon LoadLogo()
+    {
+        var size = TrayIconRenderer.GetSmallIconSize();
+        var stream = Application.GetResourceStream(LogoUri)!.Stream;
+        using (stream) return new System.Drawing.Icon(stream, size, size);
+    }
+
     public void Dispose()
     {
         _icon.Dispose();
+        _custom?.Dispose();
+        _logo?.Dispose();
     }
 }
