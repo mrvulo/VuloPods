@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using H.NotifyIcon;
+using VuloPods.Core.Platform;
 
 namespace VuloPods.App;
 
@@ -12,11 +13,16 @@ public sealed class TrayService : IDisposable
     private readonly TaskbarIcon _icon;
     private System.Drawing.Icon? _logo;
     private System.Drawing.Icon? _custom;
+    private MenuItem? _showItem;
+    private readonly List<Control> _connectItems = new();
 
     public event Action? ShowRequested;
     public event Action? SettingsRequested;
     public event Action? ExportDiagnosticsRequested;
     public event Action? ExitRequested;
+
+    /// <summary>Wird ausgelöst, wenn das Kontextmenü geöffnet wird (UI-Thread).</summary>
+    public event Action? MenuOpening;
 
     /// <summary>Das Kontextmenü; spätere Erweiterungen fügen Einträge nach „Anzeigen“ (Index 0) ein.</summary>
     public ContextMenu Menu { get; }
@@ -24,6 +30,7 @@ public sealed class TrayService : IDisposable
     public TrayService()
     {
         Menu = BuildMenu();
+        Menu.Opened += (_, _) => MenuOpening?.Invoke();
 
         _icon = new TaskbarIcon
         {
@@ -39,7 +46,7 @@ public sealed class TrayService : IDisposable
     private ContextMenu BuildMenu()
     {
         var menu = new ContextMenu();
-        var show = new MenuItem { Header = "Anzeigen" };
+        var show = _showItem = new MenuItem { Header = "Anzeigen" };
         show.Click += (_, _) => ShowRequested?.Invoke();
         var settings = new MenuItem { Header = "Einstellungen…" };
         settings.Click += (_, _) => SettingsRequested?.Invoke();
@@ -54,6 +61,60 @@ public sealed class TrayService : IDisposable
         menu.Items.Add(new Separator());
         menu.Items.Add(exit);
         return menu;
+    }
+
+    /// <summary>Zeigt während der Gerätesuche einen deaktivierten Platzhalter.</summary>
+    public void ShowSearching() => ReplaceConnectItems(new Control[] { Disabled("Suche Geräte…") });
+
+    /// <summary>Ersetzt den Verbinden/Trennen-Block direkt nach „Anzeigen“; nur auf dem UI-Thread aufrufen.</summary>
+    public void SetConnectItems(IReadOnlyList<PairedAudioDevice> devices, bool bluetoothOff, Action<PairedAudioDevice> onToggle)
+    {
+        Control[] items;
+        if (bluetoothOff)
+        {
+            items = new Control[] { Disabled("Bluetooth ist ausgeschaltet") };
+        }
+        else if (devices.Count == 0)
+        {
+            items = new Control[] { Disabled("Keine gekoppelten AirPods") };
+        }
+        else if (devices.Count == 1)
+        {
+            var d = devices[0];
+            var item = new MenuItem { Header = d.IsConnected ? $"{d.Name} trennen" : $"{d.Name} verbinden" };
+            item.Click += (_, _) => onToggle(d);
+            items = new Control[] { item };
+        }
+        else
+        {
+            var sub = new MenuItem { Header = "Verbinden / Trennen" };
+            foreach (var d in devices)
+            {
+                var device = d;
+                var item = new MenuItem { Header = device.Name, IsChecked = device.IsConnected };
+                item.Click += (_, _) => onToggle(device);
+                sub.Items.Add(item);
+            }
+
+            items = new Control[] { sub };
+        }
+
+        ReplaceConnectItems(items);
+    }
+
+    private static MenuItem Disabled(string header) => new() { Header = header, IsEnabled = false };
+
+    private void ReplaceConnectItems(IEnumerable<Control> items)
+    {
+        foreach (var old in _connectItems) Menu.Items.Remove(old);
+        _connectItems.Clear();
+
+        var index = _showItem is null ? 0 : Menu.Items.IndexOf(_showItem) + 1;
+        foreach (var item in items)
+        {
+            Menu.Items.Insert(index++, item);
+            _connectItems.Add(item);
+        }
     }
 
     public void SetTooltip(string text) => _icon.ToolTipText = text;

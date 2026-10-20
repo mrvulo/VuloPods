@@ -23,4 +23,16 @@ public static class ToastNotifier
             Log.Error("Toast konnte nicht angezeigt werden", ex);
         }
     }
+
+    public static void ShowMessage(string title, string text)
+    {
+        try
+        {
+            new ToastContentBuilder().AddText("VuloPods").AddText(title).AddText(text).Show();
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Toast konnte nicht angezeigt werden", ex);
+        }
+    }
 }

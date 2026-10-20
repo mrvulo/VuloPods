@@ -28,6 +28,7 @@ public partial class App : Application
     private LowBatteryPolicy _lowBattery = new();
     private ScannerStatus _scannerStatus = ScannerStatus.Scanning;
     private IconKey? _renderedIcon;
+    private int _menuLookup;
 
     private readonly record struct IconKey(TrayBadge Badge, bool LightTaskbar, int SizePx);
 
@@ -75,6 +76,7 @@ public partial class App : Application
         tray.SettingsRequested += ShowSettings;
         tray.ExportDiagnosticsRequested += () => _ = ExportDiagnosticsAsync();
         tray.ExitRequested += () => Shutdown();
+        tray.MenuOpening += () => _ = RefreshConnectItemsAsync();
 
         scanner.Received += store.Push;
         scanner.StatusChanged += status => OnUi(() =>
@@ -127,6 +129,42 @@ public partial class App : Application
         };
 
         scanner.Start();
+    }
+
+    private async Task RefreshConnectItemsAsync()
+    {
+        try
+        {
+            var ticket = ++_menuLookup;
+            _tray?.ShowSearching();
+            var list = await Task.Run(BluetoothAudioConnector.FindAppleAudioDevices);
+            if (ticket != _menuLookup) return;
+            _tray?.SetConnectItems(list, _scannerStatus == ScannerStatus.BluetoothUnavailable, d => _ = ToggleAsync(d));
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Geräteliste im Tray-Menü konnte nicht aktualisiert werden", ex);
+        }
+    }
+
+    private static async Task ToggleAsync(PairedAudioDevice d)
+    {
+        try
+        {
+            var wantConnected = !d.IsConnected;
+            await Task.Run(() => wantConnected ? BluetoothAudioConnector.Connect(d) : BluetoothAudioConnector.Disconnect(d));
+            await Task.Delay(4000);
+            var again = await Task.Run(BluetoothAudioConnector.FindAppleAudioDevices);
+            var found = again.FirstOrDefault(x => string.Equals(x.ContainerId, d.ContainerId, StringComparison.OrdinalIgnoreCase));
+            var ok = found is not null && found.IsConnected == wantConnected;
+            Log.Info($"{(wantConnected ? "Verbinden" : "Trennen")} {d.Name}: {(ok ? "ok" : "fehlgeschlagen")}");
+            if (!ok)
+                ToastNotifier.ShowMessage(wantConnected ? "Verbinden fehlgeschlagen" : "Trennen fehlgeschlagen", d.Name);
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Verbinden/Trennen von {d.Name} fehlgeschlagen", ex);
+        }
     }
 
     private async Task ExportDiagnosticsAsync()
