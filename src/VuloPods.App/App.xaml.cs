@@ -290,7 +290,14 @@ public partial class App : Application
         {
             if (_renderedIcon is null) return;
             _renderedIcon = null;
-            tray.SetIcon(null);
+            try
+            {
+                tray.SetIcon(null);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Tray-Logo konnte nicht gesetzt werden", ex);
+            }
             return;
         }
 

@@ -13,7 +13,6 @@ public sealed class TrayService : IDisposable
     private static readonly Uri LogoUri = new("pack://application:,,,/Assets/tray.ico");
 
     private readonly TaskbarIcon _icon;
-    private System.Drawing.Icon? _logo;
     private System.Drawing.Icon? _custom;
     private MenuItem? _showItem;
     private readonly List<Control> _connectItems = new();
@@ -150,12 +149,16 @@ public sealed class TrayService : IDisposable
 
     public void SetTooltip(string text) => _icon.ToolTipText = text;
 
-    /// <summary>Setzt ein eigenes Icon; null stellt das Logo wieder her. Das vorherige eigene Icon wird freigegeben.</summary>
+    /// <summary>
+    /// Setzt ein eigenes Icon; null stellt das Logo wieder her. Jede Zuweisung bekommt eine frische
+    /// Icon-Instanz, die TrayService besitzt; die vorherige wird danach freigegeben. So wird nie ein
+    /// bereits freigegebenes Icon erneut zugewiesen, egal ob H.NotifyIcon alte Werte selbst entsorgt.
+    /// </summary>
     public void SetIcon(System.Drawing.Icon? icon)
     {
         var previous = _custom;
-        _custom = icon;
-        _icon.Icon = icon ?? (_logo ??= LoadLogo());
+        _custom = icon ?? LoadLogo();
+        _icon.Icon = _custom;
         previous?.Dispose();
     }
 
@@ -171,6 +174,5 @@ public sealed class TrayService : IDisposable
         _leftClickTimer.Stop();
         _icon.Dispose();
         _custom?.Dispose();
-        _logo?.Dispose();
     }
 }
