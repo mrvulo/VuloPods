@@ -9,7 +9,7 @@ using VuloPods.Core.Bluetooth;
 using VuloPods.Core.Logging;
 using VuloPods.Core.Media;
 using VuloPods.Core.Models;
-using VuloPods.Core.System;
+using VuloPods.Core.Platform;
 
 namespace VuloPods.App;
 

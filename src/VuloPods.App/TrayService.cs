@@ -1,7 +1,7 @@
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using H.NotifyIcon;
-using VuloPods.Core.System;
+using VuloPods.Core.Platform;
 
 namespace VuloPods.App;
 

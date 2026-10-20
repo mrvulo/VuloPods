@@ -1,7 +1,7 @@
 using Microsoft.Win32;
 using VuloPods.Core.Logging;
 
-namespace VuloPods.Core.System;
+namespace VuloPods.Core.Platform;
 
 /// <summary>Liest das Windows-App-Theme (hell/dunkel).</summary>
 public static class WindowsTheme

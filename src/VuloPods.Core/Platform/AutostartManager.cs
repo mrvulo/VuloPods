@@ -1,7 +1,7 @@
 using Microsoft.Win32;
 using VuloPods.Core.Logging;
 
-namespace VuloPods.Core.System;
+namespace VuloPods.Core.Platform;
 
 /// <summary>Autostart über HKCU\...\Run. Fehler werden geloggt, nie geworfen.</summary>
 public static class AutostartManager
